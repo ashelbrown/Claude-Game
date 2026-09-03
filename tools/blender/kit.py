@@ -375,8 +375,20 @@ def _aim(ob, target):
     ob.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
 
 
+def frame_camera(height, fill=0.72, lens=55.0, res=(600, 900)):
+    """Distance at which a subject of `height` fills `fill` of the frame height.
+
+    Blender's sensor fit is AUTO, so the 36 mm sensor maps to the larger render
+    dimension; these previews are portrait, so that is the vertical axis.
+    """
+    sensor = 36.0
+    fov_v = 2.0 * math.atan((sensor * 0.5) / lens)
+    visible = height / max(fill, 0.05)
+    return (visible * 0.5) / math.tan(fov_v * 0.5)
+
+
 def render(filename, cam_loc, cam_target=(0, 0, 1), res=(560, 420), samples=40,
-           ortho_scale=None, subdir=""):
+           ortho_scale=None, subdir="", lens=50.0):
     """Render a Cycles CPU preview. Denoising is off — the build here lacks OIDN."""
     sc = bpy.context.scene
     bpy.ops.object.camera_add(location=cam_loc)
@@ -385,6 +397,7 @@ def render(filename, cam_loc, cam_target=(0, 0, 1), res=(560, 420), samples=40,
     if ortho_scale:
         cam.data.type = 'ORTHO'
         cam.data.ortho_scale = ortho_scale
+    cam.data.lens = lens
     sc.camera = cam
     sc.render.engine = 'CYCLES'
     sc.cycles.samples = samples
