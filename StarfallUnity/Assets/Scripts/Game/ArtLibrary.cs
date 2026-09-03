@@ -27,12 +27,19 @@ public static class ArtLibrary {
     static Shader _litShader;
     static Shader _unlitShader;
 
-    /// <summary>URP first, Built-in as a fallback, so the project works in either pipeline.</summary>
+    /// <summary>
+    /// Built-in "Standard" first, URP second.
+    ///
+    /// The project ships on the Built-in pipeline deliberately: a URP project
+    /// needs a pipeline asset, which cannot be authored outside the editor, and
+    /// URP shaders render magenta without one. Trying Standard first means the
+    /// project is correct out of the box and still works if you later convert it.
+    /// </summary>
     public static Shader LitShader {
         get {
             if (_litShader == null) {
-                _litShader = Shader.Find("Universal Render Pipeline/Lit")
-                          ?? Shader.Find("Standard")
+                _litShader = Shader.Find("Standard")
+                          ?? Shader.Find("Universal Render Pipeline/Lit")
                           ?? Shader.Find("Diffuse");
             }
             return _litShader;
@@ -42,8 +49,8 @@ public static class ArtLibrary {
     public static Shader UnlitShader {
         get {
             if (_unlitShader == null) {
-                _unlitShader = Shader.Find("Universal Render Pipeline/Unlit")
-                            ?? Shader.Find("Unlit/Color")
+                _unlitShader = Shader.Find("Unlit/Color")
+                            ?? Shader.Find("Universal Render Pipeline/Unlit")
                             ?? LitShader;
             }
             return _unlitShader;
@@ -103,11 +110,13 @@ public static class ArtLibrary {
         Material m;
         if (_materials.TryGetValue(key, out m)) return m;
         m = new Material(LitShader);
+        // Standard and URP/Lit disagree on property names, so set both spellings.
         m.color = color;
+        if (m.HasProperty("_Color")) m.SetColor("_Color", color);
         if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color);
         if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", metallic);
-        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smoothness);
         if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", smoothness);
+        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smoothness);
         _materials[key] = m;
         return m;
     }
@@ -120,8 +129,10 @@ public static class ArtLibrary {
         m = new Material(LitShader);
         Color c = color;
         m.color = c;
+        if (m.HasProperty("_Color")) m.SetColor("_Color", c);
         if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
         if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+        if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", 0.6f);
         if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.6f);
         m.EnableKeyword("_EMISSION");
         Color e = new Color(c.r * strength, c.g * strength, c.b * strength, 1f);

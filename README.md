@@ -12,7 +12,8 @@ better guns, raise your Power, and go back for harder things.
 
 ## Running it
 
-You need **Unity 6** (6000.0 LTS or newer). It is free for personal use.
+You need **Unity 6** (6000.0 LTS or newer). It is free for personal use. The
+project uses the **Built-in render pipeline**, so there is nothing to configure.
 
 1. Install **Unity Hub** from <https://unity.com/download>.
 2. In Unity Hub → *Installs* → *Install Editor*, pick **Unity 6000.0 LTS**.
