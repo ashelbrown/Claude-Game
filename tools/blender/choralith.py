@@ -340,6 +340,7 @@ def main():
         kit.box("ground", (16, 16, 0.4), (0, 0, -0.2),
                 material=kit.mat("Ground", (0.085, 0.09, 0.105), roughness=0.92))
         a, m = build_character()
+        kit.rest_pose(a)
         rad = math.radians(ang)
         cam = (math.cos(rad) * dist, -math.sin(rad) * dist, eye + H * 0.10)
         kit.three_point_lights(target=(0, 0, eye), scale=2.4)

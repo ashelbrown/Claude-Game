@@ -300,6 +300,23 @@ def push_to_nla(arm, act, name=None):
     return track
 
 
+def rest_pose(arm):
+    """Put an armature back in its modelled rest pose for previews.
+
+    push_to_nla() leaves every clip on its own NLA track, and Blender evaluates
+    all unmuted tracks together — so a preview would otherwise render the sum of
+    Idle, Walk, Attack, Death and Shed at once. Exports are unaffected: the FBX
+    writer reads each strip separately.
+    """
+    if arm.animation_data:
+        for track in arm.animation_data.nla_tracks:
+            track.mute = True
+        arm.animation_data.action = None
+    arm.data.pose_position = 'REST'
+    bpy.context.view_layer.update()
+    return arm
+
+
 # ------------------------------------------------------------------- export
 def export_fbx(objects, filename, subdir="", with_anim=False, all_actions=False):
     """Export the given objects as FBX, in Unity-friendly orientation/scale."""

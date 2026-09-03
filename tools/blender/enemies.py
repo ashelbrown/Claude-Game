@@ -39,15 +39,15 @@ def proportions(h, bulk=1.0):
     single bulk multiplier.
     """
     return dict(
-        hip_x=h * 0.052 * bulk,        # hip joint offset from midline
-        shoulder_x=h * 0.118 * bulk,   # shoulder joint offset
-        chest_w=h * 0.205 * bulk,      # chest full width
-        chest_d=h * 0.115 * bulk,
-        hips_w=h * 0.150 * bulk,
-        hips_d=h * 0.105 * bulk,
-        arm_r=h * 0.036 * bulk,        # arm limb half-thickness -> full = 2r
-        leg_r=h * 0.044 * bulk,
-        head=h * 0.115 * bulk,
+        hip_x=h * 0.050 * bulk,        # hip joint offset from midline
+        shoulder_x=h * 0.122 * bulk,   # shoulder joint offset
+        chest_w=h * 0.180 * bulk,      # chest full width
+        chest_d=h * 0.100 * bulk,
+        hips_w=h * 0.125 * bulk,
+        hips_d=h * 0.092 * bulk,
+        arm_r=h * 0.029 * bulk,        # arm limb half-thickness -> full = 2r
+        leg_r=h * 0.036 * bulk,
+        head=h * 0.098 * bulk,
     )
 
 
@@ -152,22 +152,22 @@ def build_humanoid(spec):
     for side, sx in (("L", 1), ("R", -1)):
         c.part("shoulder." + side, (armw * 1.55, armw * 1.55, armw * 1.25),
                (sx * shx, 0, h * 0.818), "upperarm." + side, ARMOR)
-        c.part("upperarm." + side, (armw, armw, h * 0.150),
+        c.part("upperarm." + side, (armw, armw, h * 0.165),
                (sx * shx * 1.03, 0, h * 0.740), "upperarm." + side, BODY)
         c.part("elbow." + side, (armw * 1.15, armw * 1.15, armw * 1.0),
                (sx * shx * 1.06, 0, h * 0.655), "forearm." + side, ARMOR)
-        c.part("forearm." + side, (armw * 0.92, armw * 0.92, h * 0.140),
+        c.part("forearm." + side, (armw * 0.92, armw * 0.92, h * 0.155),
                (sx * shx * 1.08, 0, h * 0.582), "forearm." + side, ARMOR)
         c.part("hand." + side, (armw * 0.95, armw * 1.15, armw * 1.05),
                (sx * shx * 1.10, -armw * 0.15, h * 0.500), "forearm." + side, BODY)
 
         c.part("hip." + side, (legw * 1.2, legw * 1.2, legw * 1.0),
                (sx * hipw, 0, h * 0.487), "thigh." + side, ARMOR)
-        c.part("thigh." + side, (legw, legw, h * 0.200),
+        c.part("thigh." + side, (legw, legw, h * 0.215),
                (sx * hipw, 0, h * 0.385), "thigh." + side, BODY)
         c.part("kneepad." + side, (legw * 1.1, legw * 0.7, legw * 0.9),
                (sx * hipw, -legw * 0.45, h * 0.270), "thigh." + side, ARMOR)
-        c.part("shin." + side, (legw * 0.88, legw * 0.88, h * 0.200),
+        c.part("shin." + side, (legw * 0.88, legw * 0.88, h * 0.215),
                (sx * hipw, 0, h * 0.165), "shin." + side, ARMOR)
         c.part("foot." + side, (legw * 0.95, legw * 2.1, h * 0.032),
                (sx * hipw, -legw * 0.45, h * 0.030), "shin." + side, ARMOR)
@@ -399,6 +399,7 @@ def main():
     xs, x = [], 0.0
     for spec in CAST:
         arm, mesh = build(spec)
+        kit.rest_pose(arm)
         step = 0.55 + spec["height"] * 0.26
         x += step
         arm.location = (x, 0, 0)
@@ -406,8 +407,8 @@ def main():
         x += step * 0.15
     mid = (xs[0] + xs[-1]) * 0.5
     kit.three_point_lights(target=(mid, 0, 1.6), scale=4.0)
-    kit.render("enemies_sheet.png", cam_loc=(mid, -11.5, 2.2), cam_target=(mid, 0, 1.5),
-               res=(1300, 660), samples=52, ortho_scale=9.6)
+    kit.render("enemies_sheet.png", cam_loc=(mid, -14.0, 2.55), cam_target=(mid, 0, 2.35),
+               res=(1300, 720), samples=52, ortho_scale=12.6)
     print("ENEMIES DONE %d" % len(CAST))
 
 
