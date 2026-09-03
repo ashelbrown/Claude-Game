@@ -12,7 +12,8 @@ import { EXOTIC_ARMOR, armorName, ARMOR_FLAVOR, rollArmorStats } from '../data/a
 
 let UID = 1;
 export const nextUid = () => 'i' + (UID++).toString(36) + Math.floor(Math.random() * 1296).toString(36);
-export const seedUid = (n) => { UID = Math.max(UID, n); };
+export const seedUid = (n) => { UID = Math.max(UID, n | 0); };
+export const peekUid = () => UID;
 
 const rnd = (rng, a, b) => a + rng() * (b - a);
 const rndInt = (rng, a, b) => Math.floor(a + rng() * (b - a + 1));

@@ -119,8 +119,8 @@ void main(){
   }
   // sun/nebula bloom around the key light
   float sd = max(dot(dir, uSunDir), 0.0);
-  col += uSunColor * pow(sd, 220.0) * 3.0;
-  col += uSunColor * pow(sd, 6.0) * 0.16;
+  col += uSunColor * pow(sd, 1400.0) * 2.4;
+  col += uSunColor * pow(sd, 9.0) * 0.13;
   gl_FragColor = vec4(col, 1.0);
 }`;
 
@@ -167,6 +167,7 @@ class Batch {
 }
 
 // Unit cube: 6 faces × (normal, 4 corners) — corners are ±1 in local space.
+const TRI_ORDER = [0, 1, 2, 0, 2, 3];
 const CUBE_FACES = [
   { n: [0, 0, 1],  c: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] },
   { n: [0, 0, -1], c: [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1]] },
@@ -185,8 +186,7 @@ export function emitBox(arr, at, cx, cy, cz, hx, hy, hz, yaw, r, g, b, em) {
     const nx = nx0 * cs + nz0 * sn, nz = -nx0 * sn + nz0 * cs;
     // two triangles: 0,1,2 and 0,2,3
     for (let k = 0; k < 6; k++) {
-      const ci = k < 3 ? k : (k === 3 ? 0 : k - 1); // 0,1,2, 0,2,3
-      const c = face.c[ci];
+      const c = face.c[TRI_ORDER[k]];
       const lx = c[0] * hx, ly = c[1] * hy, lz = c[2] * hz;
       const px = lx * cs + lz * sn, pz = -lx * sn + lz * cs;
       arr[at++] = cx + px; arr[at++] = cy + ly; arr[at++] = cz + pz;
