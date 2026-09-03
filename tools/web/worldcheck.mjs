@@ -1,4 +1,4 @@
-import { World, GENERATORS } from '../src/game/world.js';
+import { World, GENERATORS } from '../../web-prototype/src/game/world.js';
 let bad = 0;
 for (const gen of Object.keys(GENERATORS)) {
   for (const pal of ['rust', 'ash', 'steel']) {

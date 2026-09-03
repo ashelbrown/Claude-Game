@@ -2,17 +2,17 @@
 // loot generation, derived weapon stats, power/stat maths and save round-trips.
 import assert from 'node:assert/strict';
 
-import { mulberry32, rayAabb, aabb, v3, vnorm, mViewFPS, mPerspective, mMul, mat4, projectPoint } from '../src/core/math.js';
-import { POWER, STAT_IDS, RARITY_ORDER, powerDamageOut, powerDamageIn, statTier } from '../src/data/defs.js';
-import { FAMILIES, PERKS, EXOTIC_WEAPONS } from '../src/data/weapons.js';
-import { EXOTIC_ARMOR } from '../src/data/armor.js';
-import { SUBCLASSES, CLASSES, SUPERS, CLASS_ABILITIES } from '../src/data/subclasses.js';
-import { ENEMIES, SPAWN_TABLES, RIGS } from '../src/data/enemies.js';
+import { mulberry32, rayAabb, aabb, v3, vnorm, mViewFPS, mPerspective, mMul, mat4, projectPoint } from '../../web-prototype/src/core/math.js';
+import { POWER, STAT_IDS, RARITY_ORDER, powerDamageOut, powerDamageIn, statTier } from '../../web-prototype/src/data/defs.js';
+import { FAMILIES, PERKS, EXOTIC_WEAPONS } from '../../web-prototype/src/data/weapons.js';
+import { EXOTIC_ARMOR } from '../../web-prototype/src/data/armor.js';
+import { SUBCLASSES, CLASSES, SUPERS, CLASS_ABILITIES } from '../../web-prototype/src/data/subclasses.js';
+import { ENEMIES, SPAWN_TABLES, RIGS } from '../../web-prototype/src/data/enemies.js';
 import {
   rollWeapon, rollArmor, rollDrop, rollRarity, weaponDerived, computePower, computeStats,
   exoticConflict, itemScore, itemSubtitle, startingLoadout, rehydrate, canInfuse, infuseCost,
   dismantleValue, weaponPerkList,
-} from '../src/game/loot.js';
+} from '../../web-prototype/src/game/loot.js';
 
 let checks = 0;
 const ok = (label, fn) => { fn(); checks++; console.log('  ✓ ' + label); };
