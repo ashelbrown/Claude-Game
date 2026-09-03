@@ -14,7 +14,9 @@ import os
 import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-EXPORT_DIR = os.path.join(REPO, "StarfallUnity", "Assets", "Art")
+# Art lives under Resources/ so the game can load every model by path at
+# runtime — no prefabs, no inspector references, nothing to wire by hand.
+EXPORT_DIR = os.path.join(REPO, "StarfallUnity", "Assets", "Resources", "Art")
 PREVIEW_DIR = os.path.join(REPO, "assets-src", "previews")
 
 TAU = math.pi * 2

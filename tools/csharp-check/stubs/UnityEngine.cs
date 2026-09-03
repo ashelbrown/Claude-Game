@@ -129,6 +129,19 @@ public struct Color32 {
 public struct Rect {
   public float x, y, width, height;
   public Rect(float x, float y, float w, float h) { this.x = x; this.y = y; width = w; height = h; }
+  public float xMin { get => x; set { width += x - value; x = value; } }
+  public float yMin { get => y; set { height += y - value; y = value; } }
+  public float xMax { get => x + width; set { width = value - x; } }
+  public float yMax { get => y + height; set { height = value - y; } }
+  public Vector2 position { get => new Vector2(x, y); set { x = value.x; y = value.y; } }
+  public Vector2 size { get => new Vector2(width, height); set { width = value.x; height = value.y; } }
+  public Vector2 center { get => new Vector2(x + width / 2, y + height / 2); set { } }
+  public Vector2 min => new Vector2(xMin, yMin);
+  public Vector2 max => new Vector2(xMax, yMax);
+  public bool Contains(Vector2 p) => p.x >= xMin && p.x < xMax && p.y >= yMin && p.y < yMax;
+  public bool Contains(Vector3 p) => Contains(new Vector2(p.x, p.y));
+  public bool Overlaps(Rect other) => true;
+  public override string ToString() => x + "," + y + "," + width + "," + height;
 }
 
 public struct Bounds {
@@ -198,12 +211,19 @@ public static class Mathf {
 public class Object {
   public string name { get; set; }
   public HideFlags hideFlags { get; set; }
+  public int GetInstanceID() => 0;
   public static void Destroy(Object o) { }
   public static void Destroy(Object o, float t) { }
   public static void DestroyImmediate(Object o) { }
   public static void DontDestroyOnLoad(Object o) { }
   public static T Instantiate<T>(T original) where T : Object => original;
+  public static T Instantiate<T>(T original, Transform parent) where T : Object => original;
+  public static T Instantiate<T>(T original, Transform parent, bool worldPositionStays) where T : Object => original;
+  public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : Object => original;
+  public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation, Transform parent) where T : Object => original;
   public static Object Instantiate(Object o) => o;
+  public static Object Instantiate(Object o, Vector3 position, Quaternion rotation) => o;
+  public static Object Instantiate(Object o, Vector3 position, Quaternion rotation, Transform parent) => o;
   public static T FindObjectOfType<T>() where T : Object => null;
   public static T[] FindObjectsOfType<T>() where T : Object => new T[0];
   public static implicit operator bool(Object o) => !ReferenceEquals(o, null);
@@ -286,7 +306,12 @@ public class Transform : Component, IEnumerable {
   public void Translate(Vector3 v) { }
   public void Translate(Vector3 v, Space s) { }
   public void Rotate(Vector3 e) { }
+  public void Rotate(Vector3 e, Space relativeTo) { }
   public void Rotate(Vector3 axis, float angle) { }
+  public void Rotate(Vector3 axis, float angle, Space relativeTo) { }
+  public void Rotate(float xAngle, float yAngle, float zAngle) { }
+  public void Rotate(float xAngle, float yAngle, float zAngle, Space relativeTo) { }
+  public void RotateAround(Vector3 point, Vector3 axis, float angle) { }
   public void LookAt(Vector3 target) { }
   public void LookAt(Transform target) { }
   public Vector3 TransformPoint(Vector3 p) => p;
@@ -406,6 +431,101 @@ public class Sprite : Object {
   public static Sprite Create(Texture2D t, Rect r, Vector2 pivot) => null;
 }
 
+// ---------------------------------------------------------------- physics
+public class Collider : Component {
+  public bool enabled { get; set; }
+  public bool isTrigger { get; set; }
+  public Bounds bounds { get; }
+  public PhysicMaterial material { get; set; }
+  public Vector3 ClosestPoint(Vector3 p) => p;
+}
+public class PhysicMaterial : Object { public float dynamicFriction { get; set; } public float staticFriction { get; set; } }
+public class BoxCollider : Collider { public Vector3 center { get; set; } public Vector3 size { get; set; } }
+public class SphereCollider : Collider { public Vector3 center { get; set; } public float radius { get; set; } }
+public class CapsuleCollider : Collider {
+  public Vector3 center { get; set; } public float radius { get; set; }
+  public float height { get; set; } public int direction { get; set; }
+}
+public class MeshCollider : Collider { public Mesh sharedMesh { get; set; } public bool convex { get; set; } }
+
+public class Rigidbody : Component {
+  public Vector3 velocity { get; set; }
+  public Vector3 angularVelocity { get; set; }
+  public float mass { get; set; }
+  public float drag { get; set; }
+  public bool useGravity { get; set; }
+  public bool isKinematic { get; set; }
+  public RigidbodyConstraints constraints { get; set; }
+  public CollisionDetectionMode collisionDetectionMode { get; set; }
+  public Vector3 position { get; set; }
+  public void AddForce(Vector3 f) { }
+  public void AddForce(Vector3 f, ForceMode m) { }
+  public void AddExplosionForce(float force, Vector3 pos, float radius) { }
+  public void MovePosition(Vector3 p) { }
+}
+public enum RigidbodyConstraints { None = 0, FreezeRotation = 112, FreezeAll = 126 }
+public enum CollisionDetectionMode { Discrete, Continuous, ContinuousDynamic, ContinuousSpeculative }
+
+public class CharacterController : Collider {
+  public float slopeLimit { get; set; }
+  public float stepOffset { get; set; }
+  public float skinWidth { get; set; }
+  public float radius { get; set; }
+  public float height { get; set; }
+  public Vector3 center { get; set; }
+  public float minMoveDistance { get; set; }
+  public bool isGrounded { get; }
+  public Vector3 velocity { get; }
+  public CollisionFlags collisionFlags { get; }
+  public CollisionFlags Move(Vector3 motion) => CollisionFlags.None;
+  public bool SimpleMove(Vector3 speed) => false;
+}
+[Flags] public enum CollisionFlags { None = 0, Sides = 1, Above = 2, Below = 4 }
+
+public struct RaycastHit {
+  public Vector3 point { get; set; }
+  public Vector3 normal { get; set; }
+  public float distance { get; set; }
+  public Collider collider { get; set; }
+  public Transform transform { get; }
+  public Rigidbody rigidbody { get; }
+}
+
+public static class Physics {
+  public const int DefaultRaycastLayers = ~(1 << 2);
+  public const int AllLayers = ~0;
+  public static Vector3 gravity { get; set; }
+  public static bool queriesHitTriggers { get; set; }
+
+  public static bool Raycast(Vector3 origin, Vector3 direction) => false;
+  public static bool Raycast(Vector3 origin, Vector3 direction, float maxDistance) => false;
+  public static bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, int layerMask) => false;
+  public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit) { hit = default(RaycastHit); return false; }
+  public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDistance) { hit = default(RaycastHit); return false; }
+  public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDistance, int layerMask) { hit = default(RaycastHit); return false; }
+  public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDistance, int layerMask, QueryTriggerInteraction q) { hit = default(RaycastHit); return false; }
+  public static bool Raycast(Ray ray, out RaycastHit hit, float maxDistance) { hit = default(RaycastHit); return false; }
+  public static bool Raycast(Ray ray, out RaycastHit hit, float maxDistance, int layerMask) { hit = default(RaycastHit); return false; }
+
+  public static RaycastHit[] RaycastAll(Vector3 origin, Vector3 direction, float maxDistance) => new RaycastHit[0];
+  public static RaycastHit[] RaycastAll(Vector3 origin, Vector3 direction, float maxDistance, int layerMask) => new RaycastHit[0];
+  public static int RaycastNonAlloc(Ray ray, RaycastHit[] results, float maxDistance, int layerMask) => 0;
+
+  public static bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float maxDistance) { hit = default(RaycastHit); return false; }
+  public static bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float maxDistance, int layerMask) { hit = default(RaycastHit); return false; }
+
+  public static Collider[] OverlapSphere(Vector3 position, float radius) => new Collider[0];
+  public static Collider[] OverlapSphere(Vector3 position, float radius, int layerMask) => new Collider[0];
+  public static int OverlapSphereNonAlloc(Vector3 position, float radius, Collider[] results, int layerMask) => 0;
+  public static bool CheckSphere(Vector3 position, float radius, int layerMask) => false;
+  public static bool CheckCapsule(Vector3 start, Vector3 end, float radius, int layerMask) => false;
+
+  public static void IgnoreCollision(Collider a, Collider b) { }
+  public static void IgnoreCollision(Collider a, Collider b, bool ignore) { }
+  public static void IgnoreLayerCollision(int a, int b, bool ignore) { }
+  public static bool GetIgnoreLayerCollision(int a, int b) => false;
+}
+
 public class Camera : Component {
   public static Camera main { get; }
   public float fieldOfView { get; set; }
@@ -431,6 +551,59 @@ public class Light : Component {
   public float spotAngle { get; set; }
   public LightShadows shadows { get; set; }
   public float shadowStrength { get; set; }
+}
+
+// ---------------------------------------------------------------- animation
+public class Motion : Object { }
+public enum WrapMode { Once = 1, Loop = 2, PingPong = 4, ClampForever = 8, Default = 0 }
+public class AnimationClip : Motion {
+  public bool legacy { get; set; }
+  public float length { get; }
+  public WrapMode wrapMode { get; set; }
+  public float frameRate { get; set; }
+}
+public class AnimationState : Object {
+  public float speed { get; set; }
+  public float time { get; set; }
+  public float normalizedTime { get; set; }
+  public float weight { get; set; }
+  public WrapMode wrapMode { get; set; }
+  public bool enabled { get; set; }
+  public AnimationClip clip { get; }
+  public int layer { get; set; }
+}
+public class Animation : Behaviour, System.Collections.IEnumerable {
+  public AnimationClip clip { get; set; }
+  public bool playAutomatically { get; set; }
+  public WrapMode wrapMode { get; set; }
+  public bool isPlaying { get; }
+  public AnimationState this[string name] { get { return null; } }
+  public void AddClip(AnimationClip clip, string newName) { }
+  public void RemoveClip(AnimationClip clip) { }
+  public void RemoveClip(string name) { }
+  public bool Play() => false;
+  public bool Play(string name) => false;
+  public bool Play(string name, PlayMode mode) => false;
+  public void CrossFade(string name) { }
+  public void CrossFade(string name, float fadeLength) { }
+  public void CrossFade(string name, float fadeLength, PlayMode mode) { }
+  public void Blend(string name, float weight, float fadeLength) { }
+  public void Stop() { }
+  public void Sample() { }
+  public bool IsPlaying(string name) => false;
+  public System.Collections.IEnumerator GetEnumerator() => null;
+}
+public enum PlayMode { StopSameLayer = 0, StopAll = 4 }
+public class RuntimeAnimatorController : Object { }
+public class Animator : Behaviour {
+  public RuntimeAnimatorController runtimeAnimatorController { get; set; }
+  public float speed { get; set; }
+  public bool applyRootMotion { get; set; }
+  public void Play(string state) { }
+  public void CrossFade(string state, float duration) { }
+  public void SetFloat(string name, float v) { }
+  public void SetBool(string name, bool v) { }
+  public void SetTrigger(string name) { }
 }
 
 public class AudioClip : Object {
@@ -505,6 +678,94 @@ public enum KeyCode {
   UpArrow = 273, DownArrow = 274, RightArrow = 275, LeftArrow = 276
 }
 
+// ---------------------------------------------------------------- IMGUI
+public class GUIStyleState { public Color textColor { get; set; } public Texture2D background { get; set; } }
+public class RectOffset {
+  public RectOffset() { }
+  public RectOffset(int l, int r, int t, int b) { left = l; right = r; top = t; bottom = b; }
+  public int left { get; set; } public int right { get; set; }
+  public int top { get; set; } public int bottom { get; set; }
+}
+public class GUIStyle {
+  public GUIStyle() { }
+  public GUIStyle(GUIStyle other) { }
+  public string name { get; set; }
+  public Font font { get; set; }
+  public int fontSize { get; set; }
+  public FontStyle fontStyle { get; set; }
+  public TextAnchor alignment { get; set; }
+  public bool wordWrap { get; set; }
+  public bool richText { get; set; }
+  public RectOffset padding { get; set; }
+  public RectOffset margin { get; set; }
+  public RectOffset border { get; set; }
+  public GUIStyleState normal { get; set; }
+  public GUIStyleState hover { get; set; }
+  public GUIStyleState active { get; set; }
+  public Vector2 CalcSize(GUIContent content) => Vector2.zero;
+  public float CalcHeight(GUIContent content, float width) => 0f;
+}
+public class GUIContent {
+  public GUIContent() { }
+  public GUIContent(string text) { }
+  public GUIContent(Texture image) { }
+  public string text { get; set; }
+}
+public class GUISkin : Object {
+  public GUIStyle box { get; set; }
+  public GUIStyle label { get; set; }
+  public GUIStyle button { get; set; }
+  public GUIStyle textField { get; set; }
+  public GUIStyle window { get; set; }
+}
+public static class GUI {
+  public static Color color { get; set; }
+  public static Color backgroundColor { get; set; }
+  public static Color contentColor { get; set; }
+  public static int depth { get; set; }
+  public static GUISkin skin { get; set; }
+  public static Matrix4x4 matrix { get; set; }
+  public static bool enabled { get; set; }
+
+  public static void Label(Rect r, string text) { }
+  public static void Label(Rect r, string text, GUIStyle style) { }
+  public static void Label(Rect r, GUIContent c, GUIStyle style) { }
+  public static void Box(Rect r, string text) { }
+  public static void Box(Rect r, string text, GUIStyle style) { }
+  public static void DrawTexture(Rect r, Texture image) { }
+  public static void DrawTexture(Rect r, Texture image, ScaleMode mode) { }
+  public static void DrawTexture(Rect r, Texture image, ScaleMode mode, bool alphaBlend) { }
+  public static bool Button(Rect r, string text) => false;
+  public static bool Button(Rect r, string text, GUIStyle style) => false;
+  public static bool Toggle(Rect r, bool value, string text) => value;
+  public static float HorizontalSlider(Rect r, float value, float min, float max) => value;
+  public static void BeginGroup(Rect r) { }
+  public static void EndGroup() { }
+  public static void SetNextControlName(string name) { }
+}
+public enum ScaleMode { StretchToFill, ScaleAndCrop, ScaleToFit }
+public static class GUIUtility {
+  public static Vector2 ScaleAroundPivot(Vector2 scale, Vector2 pivot) => scale;
+  public static int hotControl { get; set; }
+}
+public static class GUILayout {
+  public static void Label(string text) { }
+  public static bool Button(string text) => false;
+  public static void Space(float pixels) { }
+  public static void BeginHorizontal() { }
+  public static void EndHorizontal() { }
+  public static void BeginVertical() { }
+  public static void EndVertical() { }
+}
+public class Event {
+  public static Event current { get; }
+  public EventType type { get; set; }
+  public Vector2 mousePosition { get; set; }
+  public KeyCode keyCode { get; set; }
+  public void Use() { }
+}
+public enum EventType { MouseDown = 0, MouseUp = 1, MouseMove = 2, KeyDown = 4, KeyUp = 5, Repaint = 7, Layout = 8, ScrollWheel = 6 }
+
 public static class Cursor { public static CursorLockMode lockState { get; set; } public static bool visible { get; set; } }
 
 public static class Screen {
@@ -551,6 +812,9 @@ public static class PlayerPrefs {
 
 public static class Resources {
   public static T Load<T>(string path) where T : Object => null;
+  public static Object[] LoadAll(string path) => new Object[0];
+  public static T[] LoadAll<T>(string path) where T : Object => new T[0];
+  public static void UnloadUnusedAssets() { }
   public static T GetBuiltinResource<T>(string path) where T : Object => null;
 }
 

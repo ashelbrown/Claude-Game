@@ -5,6 +5,10 @@
 # bad signatures and type errors before the project is ever opened in the editor.
 # A member missing from the stubs is itself a finding: it means we used an API we
 # have not deliberately verified.
+#
+# Mono's mcs implements up to C# 7.0. Unity 6 allows C# 9, but staying inside 7.0
+# is what keeps this check meaningful, so avoid `in` parameters, records, target-
+# typed new, and switch expressions.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="${TMPDIR:-/tmp}/starfall-check"
