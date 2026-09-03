@@ -49,8 +49,14 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
     public bool InActivity => State == GameState.Playing || State == GameState.Paused;
 
     // ------------------------------------------------------------- lifecycle
+    // Raw layer indices, so nothing has to be named in the editor's Tag Manager.
+    public const int PlayerLayer = 8;
+    public const int UnitLayer = 9;
+
     public void Boot() {
-        WorldMask = ~0;
+        // "World" means level geometry only. Excluding the player and the units
+        // keeps line-of-sight and wall checks from being blocked by bodies.
+        WorldMask = ~((1 << PlayerLayer) | (1 << UnitLayer));
 
         Audio = gameObject.AddComponent<AudioSynth>();
         Audio.Bind();
@@ -70,6 +76,7 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
         _sun.shadowStrength = 0.7f;
 
         var playerGo = new GameObject("Player");
+        playerGo.layer = PlayerLayer;
         playerGo.AddComponent<CharacterController>();
         Player = playerGo.AddComponent<PlayerController>();
         Player.Bind(this);
@@ -245,6 +252,7 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
         var def = Bestiary.Find(typeId);
         if (def == null) return null;
         var go = new GameObject("Enemy_" + typeId);
+        go.layer = UnitLayer;
         go.transform.position = position;
         var e = go.AddComponent<Enemy>();
         e.Setup(this, def, EnemyHealthScale, EnemyDamageScale);
@@ -418,7 +426,6 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
     }
 
     // ------------------------------------------------------------- IPerkContext
-    public float Time_ => UnityEngine.Time.time;
     float IPerkContext.Time => UnityEngine.Time.time;
     float IPerkContext.DifficultyDamageScale => EnemyHealthScale;
     Vec3 IPerkContext.PlayerPosition => ToCore(Player.transform.position);

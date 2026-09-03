@@ -415,7 +415,7 @@ public static class LevelBuilder {
         RenderSettings.fogMode = FogMode.ExponentialSquared;
         RenderSettings.fogColor = p.FogColor;
         RenderSettings.fogDensity = p.FogDensity;
-        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = p.AmbientSky;
         RenderSettings.ambientEquatorColor = p.AmbientEquator;
         RenderSettings.ambientGroundColor = p.AmbientGround;

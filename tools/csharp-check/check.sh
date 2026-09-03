@@ -32,3 +32,15 @@ if [ -n "$GAME" ]; then
     ${CORE:+-r:"$OUT/Starfall.Core.dll"} -out:"$OUT/Starfall.Game.dll" $GAME
 fi
 echo "✓ all sources compile"
+
+# --- known stub-accuracy traps, learned the hard way -------------------------
+# A stub that puts a type in the wrong namespace lets a genuine error compile.
+# These greps assert the qualified spellings the real API requires.
+fail=0
+if grep -rn "RenderSettings.ambientMode = AmbientMode" "$ROOT/StarfallUnity/Assets/Scripts" >/dev/null 2>&1; then
+  echo "✗ AmbientMode must be qualified: UnityEngine.Rendering.AmbientMode"; fail=1
+fi
+if grep -rn "FindObjectOfType\|FindObjectsOfType" "$ROOT/StarfallUnity/Assets/Scripts" >/dev/null 2>&1; then
+  echo "✗ FindObjectOfType is obsolete in Unity 6 — use FindFirstObjectByType"; fail=1
+fi
+[ "$fail" = "0" ] || exit 1

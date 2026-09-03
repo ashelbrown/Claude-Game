@@ -66,6 +66,7 @@ public sealed class Enemy : MonoBehaviour, ITarget {
     public System.Action<Enemy, PhaseDef> OnPhaseChanged;
 
     string _currentClip = "";
+    RaycastHit _losHit;
 
     // ------------------------------------------------------------- setup
     public void Setup(GameManager game, EnemyDef def, float healthScale, float damageScale) {
@@ -87,6 +88,7 @@ public sealed class Enemy : MonoBehaviour, ITarget {
 
         var prefab = ArtLibrary.CharacterModel(def.ModelName);
         var go = ArtLibrary.Spawn(prefab, transform.position, transform.rotation, transform, def.ModelName);
+        SetLayerRecursive(go, GameManager.UnitLayer);
         _model = go.transform;
         _model.localPosition = Vector3.zero;
         _model.localRotation = Quaternion.identity;
@@ -98,6 +100,13 @@ public sealed class Enemy : MonoBehaviour, ITarget {
         _attackTimer = Random.Range(0f, 0.6f);
         _goal = transform.position;
         Play("Idle", 0f);
+    }
+
+    static void SetLayerRecursive(GameObject go, int layer) {
+        go.layer = layer;
+        for (int i = 0; i < go.transform.childCount; i++) {
+            SetLayerRecursive(go.transform.GetChild(i).gameObject, layer);
+        }
     }
 
     void SetupAnimation(GameObject go, string modelName) {
@@ -244,10 +253,8 @@ public sealed class Enemy : MonoBehaviour, ITarget {
         Vector3 to = target - from;
         float dist = to.magnitude;
         if (dist < 0.1f) return true;
-        RaycastHit hit;
-        if (!Physics.Raycast(from, to / dist, out hit, dist - 0.4f, _game.WorldMask)) return true;
-        // ignore hits on ourselves or on other units
-        return hit.collider != null && hit.collider.GetComponentInParent<Enemy>() != null;
+        // WorldMask excludes units, so anything hit here is level geometry.
+        return !Physics.Raycast(from, to / dist, out _losHit, dist - 0.4f, _game.WorldMask);
     }
 
     void Steer(float dt, PlayerController player, bool sees) {
@@ -412,8 +419,7 @@ public sealed class Enemy : MonoBehaviour, ITarget {
         Vector3 to = player.EyePosition;
         float dist = Vector3.Distance(from, to);
         RaycastHit hit;
-        bool blocked = Physics.Raycast(from, (to - from).normalized, out hit, dist - 0.3f, _game.WorldMask)
-                       && hit.collider.GetComponentInParent<PlayerController>() == null;
+        bool blocked = Physics.Raycast(from, (to - from).normalized, out hit, dist - 0.3f, _game.WorldMask);
         _game.Effects.Tracer(from, blocked ? hit.point : to, new Color(1f, 0.35f, 0.3f), 0.05f);
         if (!blocked) player.TakeDamage(Def.WeaponDamage * DamageScale, from, "sniper");
         _game.Audio.Fire("sniper", from);

@@ -101,6 +101,7 @@ public sealed class MenuUI : MonoBehaviour {
     // ------------------------------------------------------------- draw
     void OnGUI() {
         if (_game == null || Screen_ == MenuScreen.None) return;
+        if (Screen_ != MenuScreen.Title && _game.Profile == null) return;
         EnsureStyles();
         float w = UnityEngine.Screen.width, h = UnityEngine.Screen.height;
         Fill(new Rect(0, 0, w, h), Bg);

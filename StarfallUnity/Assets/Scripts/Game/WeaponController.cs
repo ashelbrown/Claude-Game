@@ -224,9 +224,9 @@ public sealed class WeaponController : MonoBehaviour {
             if (dist < bestDist) { bestDist = dist; best = e; crit = headshot; }
         }
 
+        // WorldMask excludes units, so a hit here is a wall in front of the target.
         RaycastHit wall;
-        if (Physics.Raycast(origin, dir, out wall, bestDist, _game.WorldMask) &&
-            wall.collider.GetComponentInParent<Enemy>() == null) {
+        if (Physics.Raycast(origin, dir, out wall, bestDist, _game.WorldMask)) {
             if (pelletIndex < 3) {
                 _game.Effects.Impact(wall.point, wall.normal, new Color(0.9f, 0.85f, 0.75f), 5);
                 _game.Effects.Tracer(origin, wall.point, ArtLibrary.Of(w.Element));
@@ -406,9 +406,17 @@ public sealed class WeaponController : MonoBehaviour {
         _viewModel.transform.localPosition = Vector3.zero;
         _viewModel.transform.localRotation = Quaternion.identity;
         ArtLibrary.DressWeapon(_viewModel, w);
-        // The view model must never be occluded by the near plane or shot by us.
+        // The view model must never block a shot or a wall check.
         var colliders = _viewModel.GetComponentsInChildren<Collider>();
         for (int i = 0; i < colliders.Length; i++) Destroy(colliders[i]);
+        SetLayerRecursive(_viewModel, GameManager.PlayerLayer);
+    }
+
+    static void SetLayerRecursive(GameObject go, int layer) {
+        go.layer = layer;
+        for (int i = 0; i < go.transform.childCount; i++) {
+            SetLayerRecursive(go.transform.GetChild(i).gameObject, layer);
+        }
     }
 
     void LateUpdate() {

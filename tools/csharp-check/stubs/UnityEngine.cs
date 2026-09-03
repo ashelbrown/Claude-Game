@@ -226,9 +226,13 @@ public class Object {
   public static Object Instantiate(Object o, Vector3 position, Quaternion rotation, Transform parent) => o;
   public static T FindObjectOfType<T>() where T : Object => null;
   public static T[] FindObjectsOfType<T>() where T : Object => new T[0];
+  public static T FindFirstObjectByType<T>() where T : Object => null;
+  public static T FindAnyObjectByType<T>() where T : Object => null;
+  public static T[] FindObjectsByType<T>(FindObjectsSortMode sort) where T : Object => new T[0];
   public static implicit operator bool(Object o) => !ReferenceEquals(o, null);
 }
 
+public enum FindObjectsSortMode { None, InstanceID }
 public enum HideFlags { None = 0, HideAndDontSave = 61, DontSave = 52 }
 public enum PrimitiveType { Sphere, Capsule, Cylinder, Cube, Plane, Quad }
 public enum Space { World, Self }
@@ -629,7 +633,6 @@ public class AudioSource : Behaviour {
   public float maxDistance { get; set; }
   public float panStereo { get; set; }
   public AudioRolloffMode rolloffMode { get; set; }
-  public AudioMixerGroupStub outputAudioMixerGroup { get; set; }
   public void Play() { }
   public void Stop() { }
   public void Pause() { }
@@ -639,7 +642,6 @@ public class AudioSource : Behaviour {
   public static void PlayClipAtPoint(AudioClip c, Vector3 p, float volume) { }
 }
 public enum AudioRolloffMode { Logarithmic, Linear, Custom }
-public class AudioMixerGroupStub : Object { }
 public class AudioListener : Behaviour { public static float volume { get; set; } public static bool pause { get; set; } }
 
 public static class Time {
@@ -833,12 +835,11 @@ public static class RenderSettings {
   public static Color ambientSkyColor { get; set; }
   public static Color ambientEquatorColor { get; set; }
   public static Color ambientGroundColor { get; set; }
-  public static AmbientMode ambientMode { get; set; }
+  public static UnityEngine.Rendering.AmbientMode ambientMode { get; set; }
   public static float ambientIntensity { get; set; }
   public static Material skybox { get; set; }
   public static Light sun { get; set; }
 }
-public enum AmbientMode { Skybox = 0, Trilight = 1, Flat = 3, Custom = 4 }
 
 public static class SystemInfo { public static string deviceName { get; } public static string graphicsDeviceName { get; } }
 
@@ -885,6 +886,7 @@ public enum RuntimeInitializeLoadType { AfterSceneLoad, BeforeSceneLoad, BeforeS
 
 namespace Rendering {
   public enum ShadowCastingMode { Off = 0, On = 1, TwoSided = 2, ShadowsOnly = 3 }
+  public enum AmbientMode { Skybox = 0, Trilight = 1, Flat = 3, Custom = 4 }
   public enum IndexFormat { UInt16 = 0, UInt32 = 1 }
 }
 

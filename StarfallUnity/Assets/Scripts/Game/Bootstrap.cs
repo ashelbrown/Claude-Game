@@ -22,7 +22,7 @@ public sealed class Bootstrap : MonoBehaviour {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoStart() {
         if (_started) return;
-        var existing = FindObjectOfType<Bootstrap>();
+        var existing = FindFirstObjectByType<Bootstrap>();
         if (existing == null) {
             var go = new GameObject("Starfall");
             go.AddComponent<Bootstrap>();

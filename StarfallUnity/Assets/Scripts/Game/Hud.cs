@@ -114,7 +114,10 @@ public sealed class Hud : MonoBehaviour {
     }
 
     void OnGUI() {
-        if (_game == null || !_game.InActivity || _game.Menus.IsOpen) return;
+        // Menus can still be null for a frame during boot.
+        if (_game == null || !_game.InActivity) return;
+        if (_game.Menus != null && _game.Menus.IsOpen) return;
+        if (_game.Player == null || _game.Player.Cam == null) return;
         EnsureStyles();
 
         float w = Screen.width, h = Screen.height;
