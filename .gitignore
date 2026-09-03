@@ -1,0 +1,21 @@
+# Blender bytecode from the asset scripts
+__pycache__/
+*.pyc
+
+# Unity build products and caches — regenerated locally, never committed
+StarfallUnity/Library/
+StarfallUnity/Temp/
+StarfallUnity/Obj/
+StarfallUnity/Build/
+StarfallUnity/Builds/
+StarfallUnity/Logs/
+StarfallUnity/UserSettings/
+StarfallUnity/MemoryCaptures/
+StarfallUnity/Recordings/
+*.csproj
+*.sln
+*.userprefs
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -193,8 +193,115 @@ def shade_flat(ob):
     return ob
 
 
+# -------------------------------------------------------------------- rigging
+def armature(name, bones):
+    """Create an armature from a list of bone dicts.
+
+    Each bone: {name, head, tail, parent (optional), connect (optional)}.
+    Returns the armature object, left in OBJECT mode.
+    """
+    bpy.ops.object.armature_add(location=(0, 0, 0), enter_editmode=False)
+    arm = bpy.context.active_object
+    arm.name = name
+    arm.data.name = name + "_data"
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode='EDIT')
+    eb = arm.data.edit_bones
+    for b in list(eb):
+        eb.remove(b)
+    created = {}
+    for spec in bones:
+        bone = eb.new(spec["name"])
+        bone.head = spec["head"]
+        bone.tail = spec["tail"]
+        bone.roll = spec.get("roll", 0.0)
+        created[spec["name"]] = bone
+    for spec in bones:
+        if spec.get("parent"):
+            created[spec["name"]].parent = created[spec["parent"]]
+            created[spec["name"]].use_connect = spec.get("connect", False)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return arm
+
+
+def bind_rigid(mesh, arm):
+    """Bind with existing vertex groups only (no automatic weights).
+
+    Every part of these characters belongs wholly to one bone, so rigid binding
+    by named vertex group is both exact and cheap — automatic weights would
+    smear blocky parts across neighbouring joints.
+    """
+    bpy.ops.object.select_all(action='DESELECT')
+    mesh.select_set(True)
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.parent_set(type='ARMATURE_NAME')
+    return mesh
+
+
+def vgroup(ob, bone_name):
+    """Put every vertex of `ob` into a vertex group named after `bone_name`."""
+    g = ob.vertex_groups.new(name=bone_name)
+    g.add(range(len(ob.data.vertices)), 1.0, 'REPLACE')
+    return ob
+
+
+def action(arm, name, tracks, frame_end, fps=30):
+    """Author one animation action from per-bone keyframe tracks.
+
+    tracks: { bone_name: { 'rot': [(frame, (rx,ry,rz) degrees)],
+                           'loc': [(frame, (x,y,z))] } }
+    Angles are degrees for readability at the call site.
+    """
+    sc = bpy.context.scene
+    sc.render.fps = fps
+    sc.frame_start = 1
+    sc.frame_end = frame_end
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode='POSE')
+
+    act = bpy.data.actions.new(name)
+    if arm.animation_data is None:
+        arm.animation_data_create()
+    arm.animation_data.action = act
+
+    for bone_name, track in tracks.items():
+        pb = arm.pose.bones.get(bone_name)
+        if pb is None:
+            print("WARN: no bone %s for action %s" % (bone_name, name))
+            continue
+        pb.rotation_mode = 'XYZ'
+        for frame, rot in track.get("rot", []):
+            sc.frame_set(frame)
+            pb.rotation_euler = (math.radians(rot[0]), math.radians(rot[1]), math.radians(rot[2]))
+            pb.keyframe_insert(data_path="rotation_euler", frame=frame)
+        for frame, loc in track.get("loc", []):
+            sc.frame_set(frame)
+            pb.location = loc
+            pb.keyframe_insert(data_path="location", frame=frame)
+
+    for fc in act.fcurves:
+        for kp in fc.keyframe_points:
+            kp.interpolation = 'BEZIER'
+    bpy.ops.object.mode_set(mode='OBJECT')
+    act.use_fake_user = True
+    return act
+
+
+def push_to_nla(arm, act, name=None):
+    """Stash an action as an NLA strip so FBX export emits it as its own take."""
+    if arm.animation_data is None:
+        arm.animation_data_create()
+    track = arm.animation_data.nla_tracks.new()
+    track.name = name or act.name
+    strip = track.strips.new(act.name, 1, act)
+    strip.name = act.name
+    arm.animation_data.action = None
+    return track
+
+
 # ------------------------------------------------------------------- export
-def export_fbx(objects, filename, subdir="", with_anim=False):
+def export_fbx(objects, filename, subdir="", with_anim=False, all_actions=False):
     """Export the given objects as FBX, in Unity-friendly orientation/scale."""
     out_dir = os.path.join(EXPORT_DIR, subdir) if subdir else EXPORT_DIR
     os.makedirs(out_dir, exist_ok=True)
@@ -216,8 +323,8 @@ def export_fbx(objects, filename, subdir="", with_anim=False):
         mesh_smooth_type='FACE',
         add_leaf_bones=False,
         bake_anim=with_anim,
-        bake_anim_use_all_actions=False,
-        bake_anim_use_nla_strips=False,
+        bake_anim_use_all_actions=all_actions,
+        bake_anim_use_nla_strips=with_anim,
         bake_anim_simplify_factor=0.0,
         bake_anim_step=1.0,
         path_mode='COPY',
