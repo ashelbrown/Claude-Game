@@ -55,6 +55,7 @@ produces `Starfall.exe` plus its data folder.
 | **Tab** | Character and inventory |
 | **M** | Director (activity select) |
 | **Esc** | Pause |
+| **F1** | Controls overlay (also listed in-game) |
 
 ---
 

@@ -29,6 +29,7 @@ public sealed class Hud : MonoBehaviour {
     readonly List<Feed> _feed = new List<Feed>();
     readonly List<DamageArrow> _arrows = new List<DamageArrow>();
 
+    bool _showControls;
     string _bannerText, _bannerSub;
     float _bannerLife;
     Vector3? _waypoint;
@@ -78,6 +79,7 @@ public sealed class Hud : MonoBehaviour {
 
     void Update() {
         float dt = Time.deltaTime;
+        if (Input.GetKeyDown(KeyCode.F1)) _showControls = !_showControls;
         _bannerLife = Mathf.Max(0f, _bannerLife - dt);
         Tick(_hitmarkers, h => h.Life -= dt, h => h.Life <= 0f);
         Tick(_toasts, t => t.Life -= dt, t => t.Life <= 0f);
@@ -136,6 +138,73 @@ public sealed class Hud : MonoBehaviour {
         DrawBanner(w, h);
         DrawFeed(w, h);
         DrawToasts(w, h);
+        DrawControls(w, h);
+    }
+
+    // Grouped so the two that are unusual for the genre — Disperse instead of a
+    // jump, and Shed costing health — sit where they will actually be read.
+    static readonly string[,] ControlGroups = {
+        { "MOVEMENT", "" },
+        { "W A S D", "Move" },
+        { "Space", "Disperse — fragment and reform (2 charges)" },
+        { "Shift", "Sprint" },
+        { "Ctrl / C", "Crouch, or slide out of a sprint" },
+        { "", "" },
+        { "COMBAT", "" },
+        { "Mouse 1", "Fire" },
+        { "Mouse 2", "Aim" },
+        { "R", "Reload" },
+        { "1 2 3", "Kinetic / Energy / Power weapon" },
+        { "Wheel", "Cycle weapon" },
+        { "", "" },
+        { "ABILITIES", "" },
+        { "Q", "Grenade" },
+        { "E", "Melee" },
+        { "F", "Shed a facet — costs health; press again to reabsorb" },
+        { "X", "Super" },
+        { "", "" },
+        { "INTERFACE", "" },
+        { "Tab", "Character and inventory" },
+        { "M", "Director — choose an activity" },
+        { "Esc", "Pause" },
+        { "F1", "Close this" },
+    };
+
+    void DrawControls(float w, float h) {
+        if (!_showControls) {
+            var hint = new GUIStyle(_small) { alignment = TextAnchor.MiddleLeft };
+            Write(new Rect(42f, h - 26f, 200f, 16f), "F1  CONTROLS", hint, new Color(Dim.r, Dim.g, Dim.b, 0.7f));
+            return;
+        }
+
+        const float panelW = 470f;
+        float rows = ControlGroups.GetLength(0);
+        float panelH = rows * 19f + 54f;
+        var panel = new Rect((w - panelW) * 0.5f, (h - panelH) * 0.5f, panelW, panelH);
+
+        Fill(panel, new Color(0.02f, 0.03f, 0.05f, 0.92f));
+        Fill(new Rect(panel.x, panel.y, panel.width, 1f), Gold);
+        Fill(new Rect(panel.x, panel.yMax - 1f, panel.width, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.3f));
+
+        var title = new GUIStyle(_label) { fontStyle = FontStyle.Bold, fontSize = 15 };
+        Write(new Rect(panel.x + 22f, panel.y + 14f, panelW - 44f, 20f), "CONTROLS", title, Gold);
+
+        float y = panel.y + 42f;
+        var keyStyle = new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold };
+        for (int i = 0; i < rows; i++) {
+            string key = ControlGroups[i, 0], action = ControlGroups[i, 1];
+            if (key.Length == 0 && action.Length == 0) { y += 8f; continue; }
+            if (action.Length == 0) {
+                // section heading
+                Write(new Rect(panel.x + 22f, y, panelW - 44f, 16f), key, _small, Gold);
+                Fill(new Rect(panel.x + 22f, y + 16f, panelW - 44f, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.18f));
+                y += 21f;
+                continue;
+            }
+            Write(new Rect(panel.x + 22f, y, 110f, 16f), key, keyStyle, Text);
+            Write(new Rect(panel.x + 146f, y, panelW - 168f, 16f), action, _small, Dim);
+            y += 19f;
+        }
     }
 
     void DrawDamageVignette(float w, float h, PlayerController player) {
