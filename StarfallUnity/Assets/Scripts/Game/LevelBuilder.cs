@@ -276,29 +276,20 @@ public static class LevelBuilder {
     // ------------------------------------------------------------- zones
     public static Level BuildPatrol(Transform parent, Palette palette, int seed) {
         var level = Begin(parent, palette, seed, "Zone_Patrol");
-        const float S = 78f;
+        // 220m across — big enough that Disperse and the jump both matter for
+        // covering ground, and that the four districts read as places you
+        // travel to rather than corners of one room.
+        const float S = 110f;
         level.Bounds = new Bounds(Vector3.zero, new Vector3(S * 2f, 40f, S * 2f));
 
         Span(-S - 6, -1.5f, -S - 6, S + 6, 0f, S + 6, _pal.Floor);
         Perimeter(-S, -S, S, S, 16f);
 
+        // --- downtown: the bowl, its flanking arches, and the tower ring stay
+        // near centre as the zone's one unmistakable landmark.
         Bowl(0f, 0f, 17f, 4.5f);
         Arch(0f, -20f, 14f, 8f, 0f);
         Arch(0f, 20f, 14f, 8f, 0f);
-
-        const int ring = 7;
-        for (int i = 0; i < ring; i++) {
-            float a = (i / (float)ring) * Mathf.PI * 2f + _rng.Range(-0.15f, 0.15f);
-            float dist = _rng.Range(36f, 60f);
-            float x = Mathf.Cos(a) * dist, z = Mathf.Sin(a) * dist;
-            float w = _rng.Range(9f, 16f), d = _rng.Range(9f, 16f), h = _rng.Range(5f, 10f);
-            float roof = Building(x, z, w, d, h, _rng.RangeInt(0, 3));
-            if (_rng.Chance(0.55f)) {
-                Ramp(new Vector3(x + w * 0.5f + 5f, 0f, z), new Vector3(x + w * 0.5f + 0.6f, 0f, z),
-                     roof, 2.6f, _pal.Trim);
-            }
-            Debris(x + _rng.Range(-10f, 10f), z + _rng.Range(-10f, 10f), 7f, _rng.RangeInt(3, 7));
-        }
 
         for (int i = 0; i < 4; i++) {
             float a = (i / 4f) * Mathf.PI * 2f + 0.4f;
@@ -310,18 +301,47 @@ public static class LevelBuilder {
                  top, 2.4f, _pal.Trim);
         }
 
-        for (int i = 0; i < 22; i++) {
+        // --- inner ring: a loose belt of buildings between downtown and the
+        // outskirts, the same as the original single-ring layout.
+        const int innerRing = 8;
+        for (int i = 0; i < innerRing; i++) {
+            float a = (i / (float)innerRing) * Mathf.PI * 2f + _rng.Range(-0.12f, 0.12f);
+            float dist = _rng.Range(38f, 56f);
+            float x = Mathf.Cos(a) * dist, z = Mathf.Sin(a) * dist;
+            float w = _rng.Range(9f, 16f), d = _rng.Range(9f, 16f), h = _rng.Range(5f, 10f);
+            float roof = Building(x, z, w, d, h, _rng.RangeInt(0, 3));
+            if (_rng.Chance(0.55f)) {
+                Ramp(new Vector3(x + w * 0.5f + 5f, 0f, z), new Vector3(x + w * 0.5f + 0.6f, 0f, z),
+                     roof, 2.6f, _pal.Trim);
+            }
+            Debris(x + _rng.Range(-10f, 10f), z + _rng.Range(-10f, 10f), 7f, _rng.RangeInt(3, 7));
+        }
+
+        // --- outer ring: small outposts near the edge, so the far reaches of a
+        // bigger zone are destinations rather than empty ground to cross.
+        const int outerRing = 6;
+        for (int i = 0; i < outerRing; i++) {
+            float a = (i / (float)outerRing) * Mathf.PI * 2f + Mathf.PI / outerRing + _rng.Range(-0.1f, 0.1f);
+            float dist = _rng.Range(78f, 96f);
+            float x = Mathf.Cos(a) * dist, z = Mathf.Sin(a) * dist;
+            float w = _rng.Range(7f, 12f), d = _rng.Range(7f, 12f), h = _rng.Range(4f, 7f);
+            Building(x, z, w, d, h, _rng.RangeInt(0, 3));
+            Debris(x + _rng.Range(-8f, 8f), z + _rng.Range(-8f, 8f), 6f, _rng.RangeInt(2, 5));
+        }
+
+        for (int i = 0; i < 34; i++) {
             Debris(_rng.Range(-S + 10f, S - 10f), _rng.Range(-S + 10f, S - 10f),
                    _rng.Range(3f, 8f), _rng.RangeInt(2, 6));
         }
 
-        level.PlayerSpawn = new Vector3(0f, 1.2f, S - 16f);
+        level.PlayerSpawn = new Vector3(0f, 1.2f, S - 18f);
         level.PlayerYaw = 180f;
-        level.Regions.Add(new Region { Id = "north", Center = new Vector3(0, 0, -48), Radius = 32 });
-        level.Regions.Add(new Region { Id = "east", Center = new Vector3(48, 0, 0), Radius = 32 });
-        level.Regions.Add(new Region { Id = "south", Center = new Vector3(0, 0, 48), Radius = 32 });
-        level.Regions.Add(new Region { Id = "west", Center = new Vector3(-48, 0, 0), Radius = 32 });
-        level.Regions.Add(new Region { Id = "centre", Center = Vector3.zero, Radius = 24 });
+        const float regionDist = 76f, regionRadius = 40f;
+        level.Regions.Add(new Region { Id = "north", Center = new Vector3(0, 0, -regionDist), Radius = regionRadius });
+        level.Regions.Add(new Region { Id = "east", Center = new Vector3(regionDist, 0, 0), Radius = regionRadius });
+        level.Regions.Add(new Region { Id = "south", Center = new Vector3(0, 0, regionDist), Radius = regionRadius });
+        level.Regions.Add(new Region { Id = "west", Center = new Vector3(-regionDist, 0, 0), Radius = regionRadius });
+        level.Regions.Add(new Region { Id = "centre", Center = Vector3.zero, Radius = 30 });
         return Finish(level);
     }
 

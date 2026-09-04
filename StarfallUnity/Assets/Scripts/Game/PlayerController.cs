@@ -40,7 +40,13 @@ public sealed class PlayerController : MonoBehaviour {
     float _bobDistance;
     float _stepTimer;
 
-    // --- Disperse (this species does not jump; it comes apart and reassembles)
+    // --- Jump, then Disperse: tapping again in mid-air spends a charge to
+    // fragment and reform. The species trait becomes the air move rather than
+    // replacing the jump outright, which reads far better in the hand.
+    public bool CanJump => _cc != null && (_cc.isGrounded || _coyote > 0f);
+    float _coyote;
+    const float CoyoteTime = 0.12f;
+
     public int DisperseCharges { get; private set; }
     public int MaxDisperseCharges { get; private set; } = 2;
     float _disperseRecharge;
@@ -116,6 +122,7 @@ public sealed class PlayerController : MonoBehaviour {
         _shieldRegen = 52f + rec * 7.5f;
         _healthRegen = 12f + rec * 2.4f;
         MoveSpeed = cls.MoveSpeed * (0.93f + mob * 0.015f);
+        JumpPower = cls.JumpPower * (0.96f + mob * 0.008f);
         MaxDisperseCharges = cls.Jumps;
         DisperseCooldown = 3.4f - mob * 0.12f;
 
@@ -124,6 +131,7 @@ public sealed class PlayerController : MonoBehaviour {
     }
 
     public float MoveSpeed = 5.9f;
+    public float JumpPower = 7.9f;
 
     public void Respawn(Vector3 position, float yaw) {
         _cc.enabled = false;
@@ -194,7 +202,7 @@ public sealed class PlayerController : MonoBehaviour {
         _velocity.x = Mathf.Lerp(_velocity.x, target.x, 1f - Mathf.Exp(-control * dt));
         _velocity.z = Mathf.Lerp(_velocity.z, target.z, 1f - Mathf.Exp(-control * dt));
 
-        // --- Disperse replaces the jump entirely
+        // Disperse charges recover on their own cooldown, independent of jumping.
         if (DisperseCharges < MaxDisperseCharges) {
             _disperseRecharge -= dt;
             if (_disperseRecharge <= 0f) {
@@ -202,9 +210,15 @@ public sealed class PlayerController : MonoBehaviour {
                 _disperseRecharge = DisperseCooldown;
             }
         }
-        if (acceptInput && input.JumpPressed && DisperseCharges > 0) Disperse(wishWorld);
+        // Grounded (or just barely airborne) taps jump; anything later Disperses.
+        _coyote = grounded ? CoyoteTime : Mathf.Max(0f, _coyote - dt);
+        if (acceptInput && input.JumpPressed) {
+            if (grounded || _coyote > 0f) Jump();
+            else if (DisperseCharges > 0) Disperse(wishWorld);
+        }
 
-        if (grounded && _velocity.y < 0f) _velocity.y = -2f;
+        if (grounded && _velocity.y < 0f && _jumpGrace <= 0f) _velocity.y = -2f;
+        _jumpGrace = Mathf.Max(0f, _jumpGrace - dt);
         _velocity.y -= Gravity * dt;
         if (_velocity.y < -55f) _velocity.y = -55f;
 
@@ -223,9 +237,20 @@ public sealed class PlayerController : MonoBehaviour {
         }
     }
 
+    float _jumpGrace;
+
+    void Jump() {
+        _velocity.y = JumpPower;
+        _coyote = 0f;
+        // Stop the grounded check from immediately clamping velocity back down.
+        _jumpGrace = 0.1f;
+        Sliding = false;
+        _game.Audio.Jump();
+    }
+
     /// <summary>
-    /// Fragment and reform a short distance away. Directional, works in air, and
-    /// is the species' answer to a double jump — you do not arc, you relocate.
+    /// Fragment and reform a short distance away. Directional, and the air move
+    /// rather than the jump — you do not arc, you relocate.
     /// </summary>
     void Disperse(Vector3 wishWorld) {
         DisperseCharges--;

@@ -141,12 +141,12 @@ public sealed class Hud : MonoBehaviour {
         DrawControls(w, h);
     }
 
-    // Grouped so the two that are unusual for the genre — Disperse instead of a
-    // jump, and Shed costing health — sit where they will actually be read.
+    // Grouped so the two that are unusual for the genre — Disperse as the air
+    // move, and Shed costing health — sit where they will actually be read.
     static readonly string[,] ControlGroups = {
         { "MOVEMENT", "" },
         { "W A S D", "Move" },
-        { "Space", "Disperse — fragment and reform (2 charges)" },
+        { "Space", "Jump — tap again in the air to Disperse (2 charges)" },
         { "Shift", "Sprint" },
         { "Ctrl / C", "Crouch, or slide out of a sprint" },
         { "", "" },

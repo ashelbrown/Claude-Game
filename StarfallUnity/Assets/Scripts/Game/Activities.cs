@@ -97,7 +97,7 @@ public sealed class Director {
     public void Start() {
         if (IsStrike) BeginStage(0);
         else {
-            SpawnGroup(8, 30f, 78f);
+            SpawnGroup(8, 30f, 95f);
             NewBeacon();
             Objective = "Patrol";
         }
@@ -132,7 +132,7 @@ public sealed class Director {
         // like being surrounded from the moment you land.
         if (_spawnTimer <= 0f && alive < Difficulty.PatrolPopulation) {
             _spawnTimer = 3.2f;
-            SpawnGroup(Mathf.Min(2, Difficulty.PatrolPopulation - alive), 38f, 78f);
+            SpawnGroup(Mathf.Min(2, Difficulty.PatrolPopulation - alive), 38f, 95f);
         }
 
         float distance = Vector3.Distance(_game.Player.transform.position, _beaconPosition);

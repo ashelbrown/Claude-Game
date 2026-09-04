@@ -122,6 +122,7 @@ public sealed class AudioSynth : MonoBehaviour {
         Render("footstep",   0.06f,  140f,   70f, 0.85f, 1400f,  400f, 0.002f, 10f);
 
         // --- abilities
+        Render("jump",       0.10f,  260f,  480f, 0.35f, 3200f, 2200f, 0.003f, 8f, 1f);
         Render("disperse",   0.28f,  900f, 2200f, 0.45f, 5200f, 3200f, 0.004f, 6f, 1f);
         Render("grenade",    0.24f,  300f,  900f, 0.25f, 3600f, 4200f, 0.006f, 6f);
         Render("melee",      0.22f,  520f,  110f, 0.55f, 3800f,  400f, 0.003f, 6f, 1f);
@@ -188,6 +189,7 @@ public sealed class AudioSynth : MonoBehaviour {
     public void Still() => Play("still", 0.75f, 1f, null);
     public void Footstep() => Play("footstep", 0.16f, Vary(_rng, 0.18f), null);
 
+    public void Jump() => Play("jump", 0.35f, Vary(_rng, 0.08f), null);
     public void Disperse() => Play("disperse", 0.5f, Vary(_rng, 0.1f), null);
     public void Grenade() => Play("grenade", 0.5f, 1f, null);
     public void Melee() => Play("melee", 0.55f, Vary(_rng, 0.08f), null);

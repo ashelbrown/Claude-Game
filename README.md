@@ -42,7 +42,7 @@ produces `Starfall.exe` plus its data folder.
 | | |
 |---|---|
 | **WASD** | Move |
-| **Space** | **Disperse** — fragment and reform a short distance away (2 charges) |
+| **Space** | Jump. Tap again in the air to **Disperse** — fragment and reform a short distance away (2 charges) |
 | **Shift** | Sprint |
 | **Ctrl / C** | Crouch, or slide out of a sprint |
 | **Mouse 1 / 2** | Fire / aim |
@@ -83,8 +83,8 @@ The class fantasy is *your body is a resource you spend*.
 
 - **Shed** detaches a facet that fights autonomously and draws fire, at the cost
   of real maximum health. Reabsorbing it returns the health plus an overshield.
-- **Disperse** replaces the jump: you come apart and reform, in air or on the
-  ground.
+- **Disperse** is the air move: tap jump again mid-air and you come apart and
+  reform a short distance away, rather than arcing.
 - **Stilling** replaces death. Lethal damage instead suspends you — three
   seconds untouchable and helpless — and then you get back up. Long cooldown.
 - **Polarised Sight** means you read motion and muzzle flash rather than colour,
