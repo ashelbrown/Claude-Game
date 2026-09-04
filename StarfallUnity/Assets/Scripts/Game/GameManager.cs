@@ -7,6 +7,26 @@ namespace Starfall.Game {
 public enum GameState { Title, Orbit, Playing, Paused, Results }
 
 /// <summary>
+/// The handful of numbers worth turning when the game feels wrong. Everything
+/// else is per-enemy data in Bestiary.cs.
+/// </summary>
+public static class Difficulty {
+    /// <summary>How many enemies may shoot at you at once. The single most
+    /// effective lever on lethality — raise for pressure, lower for breathing room.</summary>
+    public const int MaxSimultaneousAttackers = 4;
+
+    /// <summary>Blanket multiplier on all incoming enemy damage.</summary>
+    public const float EnemyDamage = 1.0f;
+
+    /// <summary>Beat between an enemy spotting you and its first shot.</summary>
+    public const float ReactionDelayMin = 0.7f;
+    public const float ReactionDelayMax = 1.5f;
+
+    /// <summary>Live enemies a patrol tops up to.</summary>
+    public const int PatrolPopulation = 11;
+}
+
+/// <summary>
 /// The hub. Owns the services, the run state, and the combat facade that
 /// weapons, abilities and perks all route through — so shields, power scaling
 /// and kill credit are applied in exactly one place.
@@ -36,6 +56,11 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
     public ActivityDef Activity { get; private set; }
     public RunStats Run { get; private set; }
     public int WorldMask { get; private set; }
+
+    // Attack tokens. Without a cap, every enemy with line of sight fires at once
+    // and a dozen red-bars delete a full-health player in about a second. Real
+    // shooters gate this: only a few units may attack while the rest reposition.
+    readonly HashSet<int> _attackTokens = new HashSet<int>();
 
     Transform _levelRoot;
     Light _sun;
@@ -114,6 +139,7 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
     void ClearActivity() {
         for (int i = Enemies.Count - 1; i >= 0; i--) if (Enemies[i] != null) Destroy(Enemies[i].gameObject);
         Enemies.Clear();
+        _attackTokens.Clear();
         Abilities.ClearAll();
         Effects.ClearAll();
         Hud.ClearMarkers();
@@ -144,7 +170,7 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
         // parity whether the activity is 100 or 300.
         float t = (def.Power - Defs.StartPower) / 100f;
         EnemyHealthScale = 1f + t * 0.25f;
-        EnemyDamageScale = 1f + t * 0.20f;
+        EnemyDamageScale = (1f + t * 0.20f) * Difficulty.EnemyDamage;
 
         var loadout = Profile.BuildLoadout();
         Player.gameObject.SetActive(true);
@@ -196,6 +222,18 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
             if (e == null) { Enemies.RemoveAt(i); continue; }
             e.Tick(dt);
         }
+        if (_attackTokens.Count > 0) {
+            // Reclaim tokens from anything that died or despawned mid-burst.
+            _tokenSweep -= dt;
+            if (_tokenSweep <= 0f) {
+                _tokenSweep = 1f;
+                _liveIds.Clear();
+                for (int i = 0; i < Enemies.Count; i++) {
+                    if (Enemies[i] != null && Enemies[i].Alive) _liveIds.Add(Enemies[i].GetInstanceID());
+                }
+                _attackTokens.IntersectWith(_liveIds);
+            }
+        }
 
         if (Director != null && !menuOpen) Director.Tick(dt);
 
@@ -214,6 +252,8 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
     }
 
     float _autosave = 20f;
+    float _tokenSweep = 1f;
+    readonly HashSet<int> _liveIds = new HashSet<int>();
 
     InputState ReadInput(bool accept) {
         var s = new InputState();
@@ -259,6 +299,19 @@ public sealed class GameManager : MonoBehaviour, IPerkContext {
         Enemies.Add(e);
         return e;
     }
+
+    /// <summary>Claim the right to shoot. Enemies without a token reposition instead.</summary>
+    public bool TryTakeAttackToken(Enemy enemy) {
+        int id = enemy.GetInstanceID();
+        if (_attackTokens.Contains(id)) return true;
+        if (_attackTokens.Count >= Difficulty.MaxSimultaneousAttackers) return false;
+        _attackTokens.Add(id);
+        return true;
+    }
+
+    public void ReleaseAttackToken(Enemy enemy) => _attackTokens.Remove(enemy.GetInstanceID());
+
+    public bool HoldsAttackToken(Enemy enemy) => _attackTokens.Contains(enemy.GetInstanceID());
 
     // ------------------------------------------------------------- combat
     public struct DamageResult {

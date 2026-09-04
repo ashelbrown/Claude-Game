@@ -48,6 +48,8 @@ public sealed class Enemy : MonoBehaviour, ITarget {
     float _meleeWindup;
     float _staggerTimer, _staggerAccum;
     float _repathTimer;
+    float _reactionDelay = -1f;   // beat between spotting you and opening fire
+    bool _holdsToken;
     Vector3 _goal;
     Vector3 _velocity;
 
@@ -87,11 +89,9 @@ public sealed class Enemy : MonoBehaviour, ITarget {
         _cc.slopeLimit = 55f;
 
         var prefab = ArtLibrary.CharacterModel(def.ModelName);
-        var go = ArtLibrary.Spawn(prefab, transform.position, transform.rotation, transform, def.ModelName);
+        var go = ArtLibrary.SpawnLocal(prefab, transform, def.ModelName);
         SetLayerRecursive(go, GameManager.UnitLayer);
         _model = go.transform;
-        _model.localPosition = Vector3.zero;
-        _model.localRotation = Quaternion.identity;
         ArtLibrary.DressCharacter(go, def.BodyColor, def.ArmorColor, def.AccentColor, def.EyeColor);
         SetupAnimation(go, def.ModelName);
 
@@ -202,6 +202,7 @@ public sealed class Enemy : MonoBehaviour, ITarget {
 
     void Die() {
         if (!Alive) return;
+        if (_holdsToken) { _game.ReleaseAttackToken(this); _holdsToken = false; }
         Alive = false;
         _state = State.Dead;
         Health = 0f;
@@ -231,7 +232,16 @@ public sealed class Enemy : MonoBehaviour, ITarget {
         bool sees = player.Alive && player.Invisible <= 0f && !player.Stilled &&
                     Vector3.Distance(transform.position, player.transform.position) < Def.AggroRange &&
                     HasLineOfSight(player.EyePosition);
-        if (sees) _aggro = true;
+        if (sees && !_aggro) {
+            _aggro = true;
+            // A unit that opens fire the instant it sees you gives no reaction
+            // window; stagger the first shot so a group arrives in a volley,
+            // not a wall.
+            _reactionDelay = Random.Range(Difficulty.ReactionDelayMin, Difficulty.ReactionDelayMax);
+        } else if (sees) {
+            _aggro = true;
+        }
+        if (_reactionDelay > 0f) _reactionDelay -= dt;
 
         if (_state == State.Stagger) {
             _staggerTimer -= dt;
@@ -370,7 +380,16 @@ public sealed class Enemy : MonoBehaviour, ITarget {
             return;
         }
 
-        if (!sees) return;
+        if (!sees || _reactionDelay > 0f) {
+            if (_holdsToken) { _game.ReleaseAttackToken(this); _holdsToken = false; }
+            return;
+        }
+
+        // Only a few units may fire at a time; the rest keep manoeuvring.
+        if (_burstLeft <= 0) {
+            _holdsToken = _game.TryTakeAttackToken(this);
+            if (!_holdsToken) return;
+        }
 
         if (Def.Brain == EnemyBrain.Sniper) {
             if (_telegraph > 0f) {
@@ -400,13 +419,21 @@ public sealed class Enemy : MonoBehaviour, ITarget {
             _attackTimer = Def.FireInterval;
             _burstLeft = Mathf.Max(1, Def.BurstCount);
             _burstTimer = 0f;
+        } else if (_attackTimer > Def.FireInterval * 0.55f && _holdsToken) {
+            // Pass the token along during the long part of the cooldown so the
+            // same four units do not monopolise every engagement.
+            _game.ReleaseAttackToken(this);
+            _holdsToken = false;
         }
     }
 
     void FireProjectile(PlayerController player) {
         Vector3 from = MuzzlePoint;
         Vector3 dir = (player.EyePosition - from).normalized;
-        dir = (dir + Random.insideUnitSphere * Def.Spread).normalized;
+        // Spread widens with range, so distant units harass rather than delete.
+        float range = Vector3.Distance(from, player.EyePosition);
+        float spread = Def.Spread * (1f + range / 30f);
+        dir = (dir + Random.insideUnitSphere * spread).normalized;
         Projectile.Spawn(_game, from, dir * Def.ProjectileSpeed, Def.WeaponDamage * DamageScale,
                          Element.Ember, Def.AccentColor, ProjectileTeam.Enemy);
         _game.Effects.MuzzleFlash(from, Def.AccentColor);

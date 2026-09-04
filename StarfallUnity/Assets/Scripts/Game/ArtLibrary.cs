@@ -73,6 +73,25 @@ public static class ArtLibrary {
     public static GameObject PropModel(string modelName) => Model("Props/" + modelName);
 
     /// <summary>
+    /// Instantiate a model under `parent`, keeping the transform the importer
+    /// gave it.
+    ///
+    /// This matters more than it looks. Blender writes the Z-up-to-Y-up axis
+    /// conversion onto the model's root transform rather than into the vertex
+    /// data, so zeroing that rotation lays every character on its back and points
+    /// every gun at the sky. Anything that needs to aim or offset a model should
+    /// move the parent, never the model itself.
+    /// </summary>
+    public static GameObject SpawnLocal(GameObject prefab, Transform parent, string fallbackName = "MissingArt") {
+        if (prefab != null) return Object.Instantiate(prefab, parent, false);
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = fallbackName;
+        go.transform.SetParent(parent, false);
+        SetAllMaterials(go, Flat(new Color(1f, 0f, 1f)));
+        return go;
+    }
+
+    /// <summary>
     /// Instantiate a model, or a labelled placeholder cube if it is missing.
     /// A missing asset should be obvious in-scene, never a silent hole.
     /// </summary>

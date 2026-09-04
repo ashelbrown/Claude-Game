@@ -40,8 +40,7 @@ public sealed class Facet : MonoBehaviour {
         f._orbitAngle = orbitPhase;
 
         var prefab = ArtLibrary.PropModel("PROP_Facet");
-        var model = ArtLibrary.Spawn(prefab, position, Quaternion.identity, go.transform, "Facet");
-        model.transform.localPosition = Vector3.zero;
+        var model = ArtLibrary.SpawnLocal(prefab, go.transform, "Facet");
         model.transform.localScale = Vector3.one * (superFacet ? 0.8f : 1f);
         ArtLibrary.SetAllMaterials(model, ArtLibrary.Glow(ArtLibrary.Of(element), 2.2f));
         f._visual = model.transform;

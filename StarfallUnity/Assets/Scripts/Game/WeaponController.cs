@@ -401,10 +401,9 @@ public sealed class WeaponController : MonoBehaviour {
 
         var fam = Catalog.FindFamily(w.FamilyId);
         var prefab = ArtLibrary.WeaponModel(fam != null ? fam.ModelName : "WPN_AutoRifle");
-        _viewModel = ArtLibrary.Spawn(prefab, Vector3.zero, Quaternion.identity,
-                                      _game.Player.WeaponSocket, "MissingWeapon");
-        _viewModel.transform.localPosition = Vector3.zero;
-        _viewModel.transform.localRotation = Quaternion.identity;
+        // Spawn under the socket keeping the importer's own transform — see
+        // ArtLibrary.SpawnLocal. Aim adjustments move the socket, not the model.
+        _viewModel = ArtLibrary.SpawnLocal(prefab, _game.Player.WeaponSocket, "MissingWeapon");
         ArtLibrary.DressWeapon(_viewModel, w);
         // The view model must never block a shot or a wall check.
         var colliders = _viewModel.GetComponentsInChildren<Collider>();

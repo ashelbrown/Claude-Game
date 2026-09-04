@@ -97,7 +97,7 @@ public sealed class Director {
     public void Start() {
         if (IsStrike) BeginStage(0);
         else {
-            SpawnGroup(10, 26f, 78f);
+            SpawnGroup(8, 30f, 78f);
             NewBeacon();
             Objective = "Patrol";
         }
@@ -128,9 +128,11 @@ public sealed class Director {
     void TickPatrol(float dt) {
         int alive = AliveCount();
         _spawnTimer -= dt;
-        if (_spawnTimer <= 0f && alive < 16) {
-            _spawnTimer = 2.4f;
-            SpawnGroup(Mathf.Min(3, 16 - alive), 34f, 78f);
+        // Population cap, not a spawn rate: a patrol should feel busy, not
+        // like being surrounded from the moment you land.
+        if (_spawnTimer <= 0f && alive < Difficulty.PatrolPopulation) {
+            _spawnTimer = 3.2f;
+            SpawnGroup(Mathf.Min(2, Difficulty.PatrolPopulation - alive), 38f, 78f);
         }
 
         float distance = Vector3.Distance(_game.Player.transform.position, _beaconPosition);
